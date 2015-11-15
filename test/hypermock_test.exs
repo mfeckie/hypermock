@@ -79,4 +79,15 @@ defmodule HyperMockTest do
       end
     end
   end
+
+  @success_response %HyperMock.Response{ body: "SUCCESS!" }
+
+  test "intercept with predefined request/response" do
+    request  = %HyperMock.Request{ method: :get, uri: "http://example.com" }
+
+    HyperMock.intercept_with(request, @success_response) do
+      assert :ibrowse.send_req('http://example.com', [], :get) == {:ok, '200', [], 'SUCCESS!'}
+    end
+  end
+
 end

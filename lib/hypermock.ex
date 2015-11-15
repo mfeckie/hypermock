@@ -27,20 +27,46 @@ defmodule HyperMock do
       alias HyperMock.Response
       alias HyperMock.Registry
 
-      for {fun, imp} <- @adapter.request_functions do
-        :meck.expect(@adapter.target_module, fun, imp)
-      end
+      populate_adapter @adapter
 
       Registry.start_link
 
-      try do
-        unquote(test)
+      run_mock(unquote(test), @adapter)
 
-        verify_expectations
-      after
-        :meck.unload @adapter.target_module
-        Registry.stop
-      end
     end
   end
+
+  defmacro intercept_with(request, response \\ %HyperMock.Response{}, test) do
+    quote do
+      import unquote(__MODULE__)
+
+      alias HyperMock.Registry
+
+      populate_adapter @adapter
+
+      Registry.start_link
+
+      stub_request unquote(request), unquote(response)
+
+      run_mock(unquote(test), @adapter)
+
+    end
+  end
+
+  def populate_adapter(adapter) do
+    for {fun, imp} <- adapter.request_functions do
+      :meck.expect(adapter.target_module, fun, imp)
+    end
+  end
+
+  def run_mock(test, adapter) do
+    try do
+      test
+      verify_expectations
+    after
+      :meck.unload adapter.target_module
+      HyperMock.Registry.stop
+    end
+  end
+
 end
